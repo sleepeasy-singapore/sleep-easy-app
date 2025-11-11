@@ -44,6 +44,7 @@
   "lastUpdated": "Last updated: ",
   "uploaded": "Uploaded",
   "notUploaded": "Not uploaded",
+  "offline": "Offline",
   "noDataYet": "No data yet",
   "confirmDeleteTitle": "Confirm Deletion",
   "confirmDeleteMessage": "Are you sure you want to delete this file?",

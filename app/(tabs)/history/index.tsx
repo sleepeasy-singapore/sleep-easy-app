@@ -40,6 +40,37 @@ export default function History() {
   const [patientID, setPatientID] = useState<string | null>(null);
 
   //-------------------------
+  // NETWORK HELPER
+  //-------------------------
+  /**
+   * Wrap a promise with a timeout
+   * @param p Promise to wrap with timeout
+   * @param ms Timeout in milliseconds
+   * @param msg Error message on timeout
+   * @returns Promise that rejects if timeout is reached
+   */
+  function withTimeout<T>(
+    p: Promise<T>,
+    ms: number,
+    msg = "Timeout"
+  ): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // Waits for API to respond or timeout
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(msg)), ms);
+    });
+
+    // if promise finish first, clear the timeout
+    // else if timeout fires first, reject with timeout error
+    return Promise.race([p, timeout]).finally(() => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }) as Promise<T>;
+  }
+
+  //-------------------------
   // UPLOAD FUNCTIONS
   //-------------------------
   /**
@@ -115,9 +146,12 @@ export default function History() {
    */
   const checkUploadStatus = async (patientID: string, files: string[]) => {
     try {
-      const res = await api.post(
-        `sleep_easy_app/get_patient_file_upload_status.php`,
-        { patient_id: patientID, files }
+      const res = await withTimeout(
+        api.post(`sleep_easy_app/get_patient_file_upload_status.php`, {
+          patient_id: patientID,
+          files,
+        }),
+        10000
       );
 
       //res.data returns: {"exists": {"filename.csv": false, "filename2.csv": true}, "msg": "Success", "status": 200}
@@ -407,6 +441,12 @@ export default function History() {
             {t("notUploaded")}
           </Text>
         </View>
+        <View style={styles.legendItem}>
+          <Ionicons name="cloud-offline" size={16} color="#ffffff" />
+          <Text style={[styles.legendText, { color: C.text }]}>
+            {t("offline")}
+          </Text>
+        </View>
       </View>
 
       {/* History Cards */}
@@ -421,6 +461,7 @@ export default function History() {
             <HistoryCard
               key={item.id}
               label={item.label}
+              online={isOnline}
               uploaded={item.uploaded}
               onPress={() => {
                 router.push({

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 type Props = {
   /** e.g. "2025-10-08 23:00" */
   label: string;
+  online: boolean;
   /** true = uploaded (green tick), false = not uploaded (red x) */
   uploaded: boolean;
   onPress?: () => void;
@@ -13,6 +14,7 @@ type Props = {
 
 export default function HistoryCard({
   label,
+  online,
   uploaded,
   onPress,
   onLongPress,
@@ -57,9 +59,15 @@ export default function HistoryCard({
       <View style={{ width: 8 }} />
 
       <Ionicons
-        name={uploaded ? "checkmark-circle" : "close-circle"}
+        name={
+          online
+            ? uploaded
+              ? "checkmark-circle"
+              : "close-circle"
+            : "cloud-offline"
+        }
         size={18}
-        color={uploaded ? "#22c55e" : "#ef4444"} // green / red
+        color={online ? (uploaded ? "#22c55e" : "#ef4444") : "#ffffff"} // green / red / white
         accessibilityLabel={uploaded ? "Uploaded" : "Not uploaded"}
         testID={uploaded ? "status-uploaded" : "status-not-uploaded"}
       />

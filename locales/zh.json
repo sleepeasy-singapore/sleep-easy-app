@@ -44,6 +44,7 @@
   "lastUpdated": "最后更新: ",
   "uploaded": "已上传",
   "notUploaded": "未上传",
+  "offline": "离线",
   "noDataYet": "暂无数据",
   "confirmDeleteTitle": "确认删除",
   "confirmDeleteMessage": "您确定要删除此文件吗？",
