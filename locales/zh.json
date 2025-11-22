@@ -7,6 +7,10 @@
   "home": "主页",
   "history": "历史记录",
 
+  "--comment-home--": "主页面",
+  "notConnected": "未连接",
+  "connectDevice": "连接设备",
+
   "--comment-settings--": "设置菜单",
   "profile": "用户",
   "patientProfile": "用户",

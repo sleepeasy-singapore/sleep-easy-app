@@ -92,7 +92,7 @@ export default function Home() {
       }}>
       <MaterialCommunityIcons name="bluetooth-off" size={100} color={C.text} />
       <Text style={[styles.notConnectedText, { color: C.text }]}>
-        Not Connected
+        {t("notConnected")}
       </Text>
       <TouchableOpacity
         onPress={() => setConnected(!connected)}
@@ -103,7 +103,7 @@ export default function Home() {
             backgroundColor: C.tint,
           },
         ]}>
-        <Text style={styles.ctaText}>Connect Device</Text>
+        <Text style={styles.ctaText}>{t("connectDevice")}</Text>
       </TouchableOpacity>
     </View>
   );
