@@ -83,6 +83,7 @@ export default function SettingsScreen() {
             icon: isDark ? "sunny" : "moon",
             switchValue: isDark,
           },
+          /*
           {
             id: "notif",
             type: "link",
@@ -90,6 +91,7 @@ export default function SettingsScreen() {
             icon: "notifications-outline",
             route: "/(tabs)/settings/Notification",
           },
+          */
           {
             id: "language",
             type: "link",
@@ -99,6 +101,7 @@ export default function SettingsScreen() {
           },
         ],
       },
+      /*
       {
         id: "pap-machine",
         sectionLabel: t("papMachine"),
@@ -123,10 +126,12 @@ export default function SettingsScreen() {
           },
         ],
       },
+      */
       {
         id: "support",
         sectionLabel: t("support"),
         rows: [
+          /*
           {
             id: "faq",
             type: "link",
@@ -134,6 +139,7 @@ export default function SettingsScreen() {
             icon: "help-circle-outline",
             route: "/(tabs)/settings/FAQ",
           },
+          */
           {
             id: "app-version",
             type: "note",

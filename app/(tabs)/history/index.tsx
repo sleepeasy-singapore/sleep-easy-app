@@ -22,7 +22,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { API_DEV, API_PROD } from "@env";
 
-const o2dataDir = new Directory(Paths.document, "o2data");
+const getO2dataDir = (patientId: string) =>
+  new Directory(Paths.document, "o2data", patientId);
 
 const rawBase = __DEV__ ? API_DEV : API_PROD;
 const baseURL = rawBase?.replace(/\/+$/, "");
@@ -79,14 +80,18 @@ export default function History() {
   //-------------------------
   /**
    * Helper function to ensure local o2data dir exists
+   * @param patientId patient's patient id
    */
-  const ensureDir = async () => {
+  const ensureDir = async (patientId: string) => {
     try {
-      const ok = o2dataDir.exists === true;
+      const dir = getO2dataDir(patientId);
+      const ok = dir.exists === true;
 
       if (!ok) {
-        await o2dataDir.create({ intermediates: true });
+        await dir.create({ intermediates: true });
       }
+
+      return dir;
     } catch (e) {
       console.error("Error@history/index.tsx/ensureDir: ", e);
       throw e;
@@ -97,11 +102,17 @@ export default function History() {
    * Load history from o2data dir
    */
   const loadHistory = useCallback(async () => {
-    setLoading(true);
-    try {
-      await ensureDir();
+    if (!patientID) {
+      setHistory([]);
+      return [];
+    }
 
-      const entries = await o2dataDir.list();
+    setLoading(true);
+
+    try {
+      const dir = await ensureDir(patientID);
+
+      const entries = await dir.list();
       const files = entries.filter((e): e is ExpoFile => e instanceof ExpoFile);
 
       const csvs: HistoryItem[] = [];
@@ -116,7 +127,7 @@ export default function History() {
         });
       }
 
-      if (!patientID || !isOnline) {
+      if (!isOnline) {
         setHistory(csvs);
         setLastUpdateTime(new Date());
         return csvs;
@@ -278,8 +289,12 @@ export default function History() {
     const asset = res.assets?.[0];
     if (!asset?.uri) return;
 
+    if (!patientID) {
+      Alert.alert(t("error"), "No Patient Id");
+      return;
+    }
     /// Create o2data dir if not exists
-    await ensureDir();
+    const dir = await ensureDir(patientID);
 
     // read picked file
     const src = new ExpoFile(asset.uri);
@@ -289,7 +304,7 @@ export default function History() {
     const fileName = formatFileName(asset.name);
     const storageName = asset.name;
 
-    let dest = new ExpoFile(o2dataDir, storageName);
+    let dest = new ExpoFile(dir, storageName);
     if (dest.exists === true) {
       await dest.delete();
     }
@@ -392,8 +407,11 @@ export default function History() {
   };
 
   const deleteFile = async (item: HistoryItem) => {
+    if (!patientID) return;
+
     try {
-      const file = new ExpoFile(o2dataDir, item.id);
+      const dir = await ensureDir(patientID);
+      const file = new ExpoFile(dir, item.id);
       if (file.exists === true) {
         await file.delete();
       }

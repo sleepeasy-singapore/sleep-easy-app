@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SettingsList from "../../../components/SettingsList";
 import { useMemo } from "react";
 import { useCallback, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Notification() {
   const { colors: C, isDark, setMode } = useTheme();
@@ -14,6 +15,8 @@ export default function Notification() {
     "o2ring-upload-reminder": false,
     "o2ring-uploaded-notification": true,
   });
+
+  const STORAGE_KEY = "settings:notifications";
 
   const handleToggle = useCallback((id: string, next: boolean) => {
     setSwitches((prev) => ({ ...prev, [id]: next }));
