@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "iOS-app",
-    "slug": "iOS-app",
-    "scheme": "iosapp",
+    "name": "SleepEasy",
+    "slug": "sleep-easy-app",
+    "scheme": "sleep-easy-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,6 +13,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -22,7 +27,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.iOSapp"
+      "package": "com.sleepeasy.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,7 +35,16 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      ["expo-share-intent",{
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
+            "NSExtensionActivationSupportsImageWithMaxCount": 1,
+            "NSExtensionActivationSupportsMovieWithMaxCount": 1
+          },
+          "androidIntentFilters": ["*/*"]
+      }]
     ]
   }
 }
