@@ -1,6 +1,7 @@
 {
   "--general__": "一般",
   "cancel": "取消",
+  "stop": "停止",
 
   "--comment-navbar--": "菜单栏",
   "settings": "设置",
@@ -10,6 +11,15 @@
   "--comment-home--": "主页面",
   "notConnected": "未连接",
   "connectDevice": "连接设备",
+  "connectedTo": "已连接到",
+  "disconnect": "断开连接",
+  "o2ringDownloadingTitle": "正在同步 O2Ring",
+  "o2ringDownloadingMessage": "下载数据时请留在此页面。",
+
+  "--comment-scan--": "扫描页面",
+  "noDevices": "暂无设备",
+  "scan": "扫描",
+  "scanning": "正在扫描",
 
   "--comment-settings--": "设置菜单",
   "profile": "用户",

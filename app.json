@@ -5,7 +5,7 @@
     "scheme": "sleep-easy-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/sleepeasy-logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/sleepeasy-logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -33,10 +33,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./packages/viatom-o2ring/plugin",
+      "./app.plugin.js",
       "expo-router",
       "expo-font",
       "expo-asset",
-      ["expo-share-intent",{
+      [
+        "expo-share-intent",
+        {
           "iosActivationRules": {
             "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
@@ -44,7 +48,14 @@
             "NSExtensionActivationSupportsMovieWithMaxCount": 1
           },
           "androidIntentFilters": ["*/*"]
-      }]
-    ]
+        }
+      ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d0f45c21-0674-48c6-b03c-37882490281a"
+      }
+    }
   }
 }

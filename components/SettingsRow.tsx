@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   formRow: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 0,
   },
 });

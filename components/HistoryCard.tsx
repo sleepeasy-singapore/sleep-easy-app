@@ -1,25 +1,37 @@
-import { StyleSheet, TouchableOpacity, Text, View } from "react-native";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
   /** e.g. "2025-10-08 23:00" */
   label: string;
+  isChecking: boolean;
   online: boolean;
   /** true = uploaded (green tick), false = not uploaded (red x) */
   uploaded: boolean;
+  uploading: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
 };
 
 export default function HistoryCard({
   label,
+  isChecking,
   online,
   uploaded,
+  uploading,
   onPress,
   onLongPress,
 }: Props) {
   const { colors: C } = useTheme();
+
+  const isLoading = (uploading || isChecking) && !uploaded;
 
   return (
     <TouchableOpacity
@@ -58,19 +70,28 @@ export default function HistoryCard({
       {/* Upload status - at the FAR RIGHT */}
       <View style={{ width: 8 }} />
 
-      <Ionicons
-        name={
-          online
-            ? uploaded
-              ? "checkmark-circle"
-              : "close-circle"
-            : "cloud-offline"
-        }
-        size={18}
-        color={online ? (uploaded ? "#22c55e" : "#ef4444") : C.text} // green / red / default text color
-        accessibilityLabel={uploaded ? "Uploaded" : "Not uploaded"}
-        testID={uploaded ? "status-uploaded" : "status-not-uploaded"}
-      />
+      {isLoading ? (
+        <ActivityIndicator
+          size={"small"}
+          color={C.tint}
+          accessibilityLabel="Uploading"
+          testID="status-uploading"
+        />
+      ) : (
+        <Ionicons
+          name={
+            online
+              ? uploaded
+                ? "checkmark-circle"
+                : "close-circle"
+              : "cloud-offline"
+          }
+          size={18}
+          color={online ? (uploaded ? "#22c55e" : "#ef4444") : C.text} // green / red / default text color
+          accessibilityLabel={uploaded ? "Uploaded" : "Not uploaded"}
+          testID={uploaded ? "status-uploaded" : "status-not-uploaded"}
+        />
+      )}
     </TouchableOpacity>
   );
 }
@@ -81,7 +102,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
   },
   cardLabel: {

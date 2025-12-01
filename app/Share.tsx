@@ -14,6 +14,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { API_DEV, API_PROD } from "@env";
 import { useTranslation } from "react-i18next";
 import { Directory, Paths, File as ExpoFile } from "expo-file-system";
+import { uploadCsv } from "../service/History";
 
 const rawBase = __DEV__ ? API_DEV : API_PROD;
 const baseURL = rawBase?.replace(/\/+$/, "");
@@ -97,7 +98,7 @@ export default function ShareScreen() {
       const storageName =
         file.fileName && file.fileName.length > 0
           ? file.fileName
-          : `shared_${Date.now()}.csv`;
+          : `${Date.now()}.csv`;
 
       let dest = new ExpoFile(dir, storageName);
       if (dest.exists === true) {
@@ -106,37 +107,16 @@ export default function ShareScreen() {
 
       await dest.write(text, { encoding: "utf8" });
 
-      const form = new FormData();
-      form.append("patient_id", patientID);
-      form.append("silent", "1");
-      form.append("csv", {
-        uri: dest.uri,
-        name: storageName,
-        type: "text/csv",
-      } as any);
-
-      const res = await fetch(`${baseURL}/staff/o2ring-data/upload.php`, {
-        method: "POST",
-        headers: { Accept: "application/json" },
-        body: form,
+      await uploadCsv({
+        patientId: patientID,
+        item: { id: storageName, uri: dest.uri },
+        baseURL,
       });
 
-      const data = await res.json().catch(() => ({} as any));
-
-      if (
-        res.ok &&
-        (data?.status === 200 || res.status === 200 || res.status === 409)
-      ) {
-        Alert.alert("Success", "File saved and uploaded for this patient.");
-        // clear share intent so it doesn't repeat if user comes back
-        resetShareIntent();
-      } else {
-        console.error("Error@Share.tsx: Upload failed", {
-          status: res.status,
-          data,
-        });
-        Alert.alert("Error@Share.tsx", "Upload failed. Please try again.");
-      }
+      // Success (uploadCsv resolves on 2xx/409)
+      Alert.alert("Success", "File saved and uploaded for this patient.");
+      // clear share intent so it doesn't repeat if user comes back
+      resetShareIntent();
     } catch (e: any) {
       console.error("Error@Share.tsx:", e?.message ?? e);
       Alert.alert(

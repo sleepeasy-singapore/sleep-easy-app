@@ -18,12 +18,11 @@ export default function Welcome() {
   const { colors: C, fonts: F } = useTheme();
 
   const [patientID, setPatientID] = useState<string>("");
-  const [validated, setValidated] = useState<boolean>(false);
 
   const savePatientID = async () => {
     try {
       await AsyncStorage.setItem("patientID", patientID);
-      router.push("/(tabs)");
+      router.replace("/(tabs)/home");
     } catch (error) {
       console.error("Error@Welcome.tsx:", error);
     }
@@ -63,7 +62,7 @@ export default function Welcome() {
           />
 
           <TouchableOpacity onPress={savePatientID}>
-            <Ionicons 
+            <Ionicons
               name="arrow-forward-circle-outline"
               size={32}
               color={C.tint}
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     marginVertical: 12,
   },

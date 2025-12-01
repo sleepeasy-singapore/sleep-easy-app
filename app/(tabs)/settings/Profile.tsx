@@ -161,7 +161,7 @@ export default function Profile() {
           { id: "email", type: "text-input", title: t("email") + " *" },
         ],
       },
-      {
+      /*{
         id: "emergency-contact",
         sectionLabel: t("emergencyContact"),
         rows: [
@@ -181,7 +181,7 @@ export default function Profile() {
             title: t("emergencyContactNumber"),
           },
         ],
-      },
+      },*/
     ],
     [t]
   );

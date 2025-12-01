@@ -24,11 +24,13 @@ type ThemeContextValue = {
     bg2: string;
     text: string;
     sub: string;
+    sub2: string;
     card: string;
     border: string;
     shadow: string;
     tint: string;
     danger: string;
+    white: string;
   };
   fonts: {
     title: object;
@@ -82,11 +84,13 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({
       bg2: isDark ? "#111" : "#fff",
       text: isDark ? "#F5F5F5" : "#0B0B0B",
       sub: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)",
+      sub2: "#222f3e",
       card: isDark ? "#161616" : "#F7F7F9",
       border: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.5)",
       shadow: isDark ? "transparent" : "#00000020",
       tint: "#5B61FF", // primary action color
       danger: "#D64545", // destructive action color
+      white: "#FFFFFF",
     }),
     [isDark]
   );

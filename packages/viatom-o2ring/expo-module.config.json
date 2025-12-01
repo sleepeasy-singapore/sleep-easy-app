@@ -1,0 +1,7 @@
+{
+  "name": "@ios-app/viatom-o2ring",
+  "platforms": ["android"],
+  "android": {
+    "modules": ["expo.modules.viatom.ViatomModule"]
+  }
+}

@@ -24,7 +24,7 @@ export default function SettingsCard({
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     ...Platform.select({

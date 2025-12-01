@@ -1,5 +1,4 @@
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "../../../theme/ThemeProvider";
 import {
   View,
   Text,
@@ -11,19 +10,22 @@ import {
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
-import HistoryCard from "../../../components/HistoryCard";
-import { Directory, Paths, File as ExpoFile } from "expo-file-system";
+import { File as ExpoFile } from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { HistoryItem } from "../../../types/history";
 import { router, useFocusEffect } from "expo-router";
-import api from "../../../api/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import { API_DEV, API_PROD } from "@env";
-
-const getO2dataDir = (patientId: string) =>
-  new Directory(Paths.document, "o2data", patientId);
+import api from "../../../api/api";
+import {
+  ensureDir,
+  uploadPendingCsvs,
+  UploadItem,
+} from "../../../service/History";
+import HistoryCard from "../../../components/HistoryCard";
+import { useTheme } from "../../../theme/ThemeProvider";
 
 const rawBase = __DEV__ ? API_DEV : API_PROD;
 const baseURL = rawBase?.replace(/\/+$/, "");
@@ -32,8 +34,9 @@ export default function History() {
   const { colors: C, fonts: F } = useTheme();
   const { t } = useTranslation();
 
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const isUploading = useRef(false);
-  const [loading, setLoading] = useState(false);
+  const [uploadingIds, setUploadingIds] = useState<string[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(false);
 
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -79,26 +82,6 @@ export default function History() {
   // UPLOAD FUNCTIONS
   //-------------------------
   /**
-   * Helper function to ensure local o2data dir exists
-   * @param patientId patient's patient id
-   */
-  const ensureDir = async (patientId: string) => {
-    try {
-      const dir = getO2dataDir(patientId);
-      const ok = dir.exists === true;
-
-      if (!ok) {
-        await dir.create({ intermediates: true });
-      }
-
-      return dir;
-    } catch (e) {
-      console.error("Error@history/index.tsx/ensureDir: ", e);
-      throw e;
-    }
-  };
-
-  /**
    * Load history from o2data dir
    */
   const loadHistory = useCallback(async () => {
@@ -107,11 +90,9 @@ export default function History() {
       return [];
     }
 
-    setLoading(true);
-
     try {
+      // Get list of files in o2data/patientID
       const dir = await ensureDir(patientID);
-
       const entries = await dir.list();
       const files = entries.filter((e): e is ExpoFile => e instanceof ExpoFile);
 
@@ -127,11 +108,13 @@ export default function History() {
         });
       }
 
-      if (!isOnline) {
-        setHistory(csvs);
-        setLastUpdateTime(new Date());
-        return csvs;
-      }
+      setHistory(csvs);
+      setLastUpdateTime(new Date());
+
+      if (!isOnline) return csvs;
+
+      // Check upload status from backend
+      setIsCheckingStatus(true);
 
       const existsMap =
         (await checkUploadStatus(
@@ -150,7 +133,7 @@ export default function History() {
     } catch (e) {
       console.error("Error@history/index.tsx/loadHistory: ", e);
     } finally {
-      setLoading(false);
+      setIsCheckingStatus(false);
     }
   }, [patientID, isOnline]);
 
@@ -183,26 +166,34 @@ export default function History() {
    * Auto upload pending files when online
    */
   const autoUpload = useCallback(async () => {
-    if (isUploading.current || !patientID || !isOnline) return;
+    if (isUploading.current || !patientID || !isOnline || !baseURL) return;
 
     const pending = history.filter((h) => !h.uploaded);
     if (pending.length === 0) return;
 
     isUploading.current = true;
+    setUploadingIds(pending.map((p) => p.id));
+
     try {
-      for (const item of pending) {
-        try {
-          await uploadOneCSV(patientID, item);
-        } catch (inner) {
-          // never let one file kill the batch
-          console.error("Error@history/index.tsx/autoUpload:", inner);
-        }
+      const uploadedIds = await uploadPendingCsvs({
+        patientId: patientID,
+        items: pending as UploadItem[],
+        baseURL,
+      });
+      if (uploadedIds.length > 0) {
+        setHistory((h) =>
+          h.map((item) =>
+            uploadedIds.includes(item.id) ? { ...item, uploaded: true } : item
+          )
+        );
       }
+    } catch (inner) {
+      console.error("Error@history/index.tsx/autoUpload:", inner);
     } finally {
+      setUploadingIds([]);
       isUploading.current = false;
-      await loadHistory();
     }
-  }, [patientID, isOnline, history, loadHistory]);
+  }, [patientID, isOnline, history, loadHistory, baseURL]);
 
   /**
    * Load patient ID and check net status on mount
@@ -322,63 +313,6 @@ export default function History() {
     await loadHistory();
   }, [loadHistory, isOnline, patientID]);
 
-  /**
-   * Upload files and mark as uploaded
-   */
-  const uploadOneCSV = async (patientID: string, item: HistoryItem) => {
-    if (!isOnline || !patientID) return;
-
-    const form = new FormData();
-    form.append("patient_id", patientID);
-    form.append("silent", "1");
-    form.append("csv", {
-      uri: item.uri,
-      name: item.id,
-      type: "text/csv",
-    } as any);
-
-    try {
-      const res = await fetch(`${baseURL}/staff/o2ring-data/upload.php`, {
-        method: "POST",
-        // IMPORTANT: don't set Content-Type yourself; let fetch add the boundary.
-        headers: { Accept: "application/json" },
-        body: form,
-      });
-
-      if (res.status === 409) {
-        // duplicate filename -> your PHP returns 409 -> treat as uploaded
-        markUploaded(item.id);
-        return;
-      }
-
-      const data = await res.json().catch(() => ({} as any));
-      if (res.ok && (data?.status === 200 || res.status === 200)) {
-        markUploaded(item.id);
-      } else {
-        console.error("Error@history/index.tsx/uploadOneCSV/res: ", {
-          status: res.status,
-          data,
-        });
-        Alert.alert(t("error"));
-      }
-    } catch (e: any) {
-      console.error(
-        "Error@history/index.tsx/uploadOneCSV/Network: ",
-        e?.message ?? e
-      );
-      Alert.alert(t("error"));
-    }
-  };
-
-  /**
-   * Mark item as uploaded in state
-   */
-  const markUploaded = (id: string) => {
-    setHistory((h) =>
-      h.map((item) => (item.id === id ? { ...item, uploaded: true } : item))
-    );
-  };
-
   //-------------------------
   // DELETE FUNCTIONS
   //-------------------------
@@ -422,20 +356,6 @@ export default function History() {
       Alert.alert(t("error"), t("deleteFileError" + e));
     }
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={{
-          flex: 1,
-          backgroundColor: C.bg,
-          justifyContent: "center",
-          alignItems: "center",
-        }}>
-        <ActivityIndicator />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
@@ -483,8 +403,10 @@ export default function History() {
             <HistoryCard
               key={item.id}
               label={item.label}
+              isChecking={isCheckingStatus}
               online={isOnline}
               uploaded={item.uploaded}
+              uploading={uploadingIds.includes(item.id)}
               onPress={() => {
                 router.push({
                   pathname: `/history/DetailedReport`,
@@ -504,7 +426,7 @@ export default function History() {
           onUploadPress();
         }}
         style={[styles.addButton, { backgroundColor: C.tint }]}>
-        <Ionicons name="add" size={30} color={C.text} />
+        <Ionicons name="add" size={30} color={C.white} />
       </TouchableOpacity>
     </SafeAreaView>
   );

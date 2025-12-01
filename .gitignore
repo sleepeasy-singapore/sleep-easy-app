@@ -38,4 +38,12 @@ yarn-error.*
 
 # generated native folders
 /ios
-/android
+
+# Android build artifacts
+android/.gradle/
+android/.cxx/
+android/app/build/
+packages/viatom-o2ring/.gradle/
+packages/viatom-o2ring/android/.gradle/
+packages/viatom-o2ring/android/.cxx/
+packages/viatom-o2ring/android/build/

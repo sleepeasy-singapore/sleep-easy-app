@@ -1,0 +1,37 @@
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+
+android {
+  namespace "expo.modules.viatom"
+  compileSdkVersion 34
+
+  defaultConfig {
+    minSdkVersion 24
+  }
+}
+
+repositories {
+    flatDir {
+        dirs "$rootDir/app/libs"
+    }
+}
+
+dependencies {
+  // Expo Module Core
+  implementation project(':expo-modules-core')
+  implementation "org.jetbrains.kotlin:kotlin-stdlib"
+
+  // LiveEventBus + lifecycle
+  implementation project(':liveeventbus-x')
+  implementation "androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.6"
+
+  // Required by underlying logging used in dependencies (avoids NoClassDefFoundError: CompositeStreamLogger)
+  implementation "io.getstream:stream-log-android:1.1.4"
+  implementation "io.getstream:stream-log-android-file:1.1.4"
+
+  // Nordic BLE observer interface required by Lepu SDK
+  implementation "no.nordicsemi.android:ble:2.7.2"
+
+  // Lepu BLE library pulled from local Maven repo
+  implementation(name: "lepu-blepro-1.0.7", ext: "aar")
+}

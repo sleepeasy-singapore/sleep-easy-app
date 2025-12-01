@@ -26,7 +26,8 @@ export default function Layout() {
   const hideTabs =
     segments.at(0) === "(tabs)" &&
     ((segments.at(1) === "settings" && (segments.length ?? 0) > 2) ||
-      (segments.at(1) === "history" && (segments.length ?? 0) > 2));
+      (segments.at(1) === "history" && (segments.length ?? 0) > 2) ||
+      (segments.at(1) === "home" && (segments.length ?? 0) > 2));
 
   return (
     <Tabs
@@ -60,7 +61,7 @@ export default function Layout() {
           ),
         };
       }}>
-      <Tabs.Screen name="index" options={{ tabBarLabel: t("home") }} />
+      <Tabs.Screen name="home" options={{ tabBarLabel: t("home") }} />
       <Tabs.Screen name="history" options={{ tabBarLabel: t("history") }} />
       <Tabs.Screen name="settings" options={{ tabBarLabel: t("settings") }} />
     </Tabs>

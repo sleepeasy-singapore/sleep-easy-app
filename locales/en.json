@@ -1,6 +1,7 @@
 {
   "--general__": "General",
   "cancel": "Cancel",
+  "stop": "Stop",
 
   "--comment-navbar--": "Navigation Bar",
   "settings": "Settings",
@@ -10,6 +11,15 @@
   "--comment-home--": "Home Page",
   "notConnected": "Not Connected",
   "connectDevice": "Connect Device",
+  "connectedTo": "Connected to",
+  "disconnect": "Disconnect",
+  "o2ringDownloadingTitle": "Syncing your O2Ring",
+  "o2ringDownloadingMessage": "Stay on this screen while we download your data.",
+
+  "--comment-scan--": "Scan Page",
+  "noDevices": "No devices",
+  "scan": "Scan",
+  "scanning": "Scanning",
 
   "--comment-settings--": "Settings Page",
   "profile": "Profile",

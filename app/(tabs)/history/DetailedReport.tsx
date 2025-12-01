@@ -1,5 +1,6 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../theme/ThemeProvider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -12,13 +13,13 @@ import {
   TextInput,
 } from "react-native";
 import { CartesianChart, Line } from "victory-native";
-import { Directory, Paths, File as ExpoFile } from "expo-file-system";
+import { File as ExpoFile } from "expo-file-system";
 import { useTranslation } from "react-i18next";
+import { getO2dataDir } from "../../../service/History";
 import { useFont } from "@shopify/react-native-skia";
 
 type Row = { t: number; spo2: number; pr: number }; // ms timestamp, SpO2, Pulse
 
-const o2dataDir = new Directory(Paths.document, "o2data");
 const { height } = Dimensions.get("window");
 
 /**
@@ -129,35 +130,66 @@ export default function DetailedReport() {
     require("../../../assets/fonts/Roboto-Regular.ttf"),
     12
   );
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{
+    id: string;
+  }>();
 
   const [rows, setRows] = useState<Row[] | null>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [patientID, setPatientID] = useState<string>("");
+
   /**
-   * Load data from file
+   * Get patientID from AsyncStorage
    */
   useEffect(() => {
     (async () => {
       try {
-        if (!id)
-          throw new Error(
-            "Error@DetailedReport.tsx/useEffect: Missing file id"
-          );
+        const id = await AsyncStorage.getItem("patientID");
+        if (id) setPatientID(id);
+      } catch (error) {
+        console.warn("Error@DetailedReport.tsx/useEffect:", error);
+      }
+    })();
+  }, []);
+
+  /**
+   * Load data from file
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!id) {
+        console.warn("Error@DetailedReport.tsx/useEffect: Missing file id");
+        return;
+      }
+
+      // Wait for patientID to be available before attempting to read the file
+      if (!patientID) return;
+
+      setLoading(true);
+
+      try {
+        const o2dataDir = getO2dataDir(patientID);
         const file = new ExpoFile(o2dataDir, id);
         const text = await file.text();
         const data = parseCsvToRows(text);
-        setRows(data);
+        if (!cancelled) setRows(data);
       } catch (error) {
         console.warn("Error@DetailedReport.tsx/useEffect:", error);
         Alert.alert(t("error"), t("failedToLoadData"));
-        setRows([]);
+        if (!cancelled) setRows([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, patientID]);
 
   /**
    * Add or edit notes in the CSV file
@@ -336,6 +368,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
   },
 });
