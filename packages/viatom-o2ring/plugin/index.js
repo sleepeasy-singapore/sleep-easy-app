@@ -1,10 +1,14 @@
 const {
   withAndroidManifest,
+  withInfoPlist,
   createRunOncePlugin,
 } = require("@expo/config-plugins");
 
+const IOS_BLUETOOTH_USAGE =
+  "Sleep Easy uses Bluetooth to pair with your device.";
+
 function addBluetoothPermissions(config) {
-  return withAndroidManifest(config, (config) => {
+  config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
 
     // Ensure <manifest> has <uses-permission>
@@ -38,6 +42,19 @@ function addBluetoothPermissions(config) {
 
     return config;
   });
+
+  config = withInfoPlist(config, (config) => {
+    const plist = config.modResults;
+    // Always include both keys per App Store review guidance.
+    plist.NSBluetoothAlwaysUsageDescription =
+      plist.NSBluetoothAlwaysUsageDescription || IOS_BLUETOOTH_USAGE;
+    plist.NSBluetoothPeripheralUsageDescription =
+      plist.NSBluetoothPeripheralUsageDescription || IOS_BLUETOOTH_USAGE;
+
+    return config;
+  });
+
+  return config;
 }
 
 module.exports = createRunOncePlugin(

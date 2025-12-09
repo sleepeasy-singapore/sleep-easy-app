@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   Platform,
   StatusBar,
@@ -19,7 +19,14 @@ export default function Home() {
   const { colors: C, isDark, fonts: F } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
-  const { connectedDevice, spo2, pr, disconnect, refreshRealtime } =
+  const {
+    connectedDevice,
+    spo2,
+    pr,
+    disconnect,
+    refreshRealtime,
+    isRealtimeReady,
+  } =
     useO2Ring();
 
   useEffect(() => {
@@ -45,7 +52,7 @@ export default function Home() {
    */
   useFocusEffect(
     useCallback(() => {
-      if (!connectedDevice) return;
+      if (!connectedDevice || !isRealtimeReady) return;
 
       // call once immediately when screen is focused
       refreshRealtime();
@@ -59,7 +66,7 @@ export default function Home() {
       return () => {
         clearInterval(intervalId);
       };
-    }, [connectedDevice, refreshRealtime])
+    }, [connectedDevice, isRealtimeReady, refreshRealtime])
   );
 
   const displaySpo2 =

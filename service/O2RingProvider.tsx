@@ -10,6 +10,9 @@ import { File as ExpoFile } from "expo-file-system";
 import * as O2Ring from "@ios-app/viatom-o2ring";
 import { ensureDir } from "./History";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+
+const REALTIME_STALE_TIMEOUT_MS = 5000;
 
 type DeviceItem = O2Ring.DeviceFoundEvent;
 
@@ -20,6 +23,8 @@ type O2RingContextValue = {
   hasPermission: boolean;
   isScanning: boolean;
   connecting: boolean;
+  serviceReady: boolean;
+  isRealtimeReady: boolean;
   devices: DeviceItem[];
   connectedDevice: DeviceItem | null;
   spo2: number | null;
@@ -38,6 +43,11 @@ type O2RingContextValue = {
 
 const O2RingContext = createContext<O2RingContextValue | null>(null);
 
+/**
+ * Orchestrates the lifecycle of the native Viatom O2Ring module.
+ * Handles scanning, connections, realtime streaming, and serialised history downloads
+ * so consuming screens only have to read values from this context.
+ */
 export function O2RingProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
   const [hasPermission, setHasPermission] = useState(false);
@@ -46,6 +56,12 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
   const [devices, setDevices] = useState<DeviceItem[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<DeviceItem | null>(
     null
+  );
+  const [serviceReady, setServiceReady] = useState(
+    Platform.OS === "android" ? true : false
+  );
+  const [iosRealtimeReady, setIosRealtimeReady] = useState(
+    Platform.OS === "android"
   );
   const [spo2, setSpo2] = useState<number | null>(null);
   const [pr, setPr] = useState<number | null>(null);
@@ -58,11 +74,13 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
   const infoRetryTimer = React.useRef<NodeJS.Timeout | null>(null);
   const patientIdRef = React.useRef<string | null>(null);
   const connectedDeviceRef = React.useRef<DeviceItem | null>(null);
+  const serviceReadyRef = React.useRef(serviceReady);
   const infoRetryCount = React.useRef(0);
   const syncingPatientId = React.useRef<Promise<string | null> | null>(null);
   const readQueue = React.useRef<string[]>([]);
   const currentReading = React.useRef<string | null>(null);
   const readTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const realtimeStartPromise = React.useRef<Promise<boolean> | null>(null);
 
   // -------------------
   // Patient ID sync
@@ -153,14 +171,21 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
     connectedDeviceRef.current = connectedDevice;
   }, [connectedDevice]);
 
+  useEffect(() => {
+    serviceReadyRef.current = serviceReady;
+  }, [serviceReady]);
+
   // Once we have a patient ID and a connected device, request info so files can download.
   useEffect(() => {
     if (!connectedDevice || !patientIdRef.current) return;
     infoRetryCount.current = 0;
+
+    if (!serviceReady) return;
+
     O2Ring.getInfo().catch((e) =>
       console.warn("Error@O2RingProvider.tsx/getInfo (patient sync): ", e)
     );
-  }, [connectedDevice, patientId]);
+  }, [connectedDevice, patientId, serviceReady]);
 
   const requestPermissions = useCallback(async () => {
     try {
@@ -175,9 +200,30 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * Start realtime streaming with a couple of retries since BLE can be slow
+   * Start realtime streaming with retries. BLE can easily stall when the system is busy,
+   * so we ensure that only one attempt is active and back off between retries.
    */
   const startRealtimeStream = useCallback(async () => {
+    if (realtimeStartPromise.current) {
+      return realtimeStartPromise.current;
+    }
+
+    // Must have a device
+    if (!connectedDeviceRef.current) {
+      console.warn("startRealtime: no connected device yet");
+      return Promise.resolve(false);
+    }
+
+    // On iOS, must wait for serviceReady
+    if (Platform.OS === "ios" && !serviceReadyRef.current) {
+      console.warn("startRealtime: service not ready yet");
+      return Promise.resolve(false);
+    }
+
+    if (Platform.OS === "ios") {
+      setIosRealtimeReady(false);
+    }
+
     const attempt = async (count: number): Promise<boolean> => {
       try {
         await O2Ring.startRealtime();
@@ -187,19 +233,94 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
           `Error@O2RingProvider.tsx/startRealtime attempt ${count}: `,
           e
         );
-        if (count >= 3) return false;
+        if (count >= 10) return false;
         await new Promise((resolve) => setTimeout(resolve, 500 * count));
         return attempt(count + 1);
       }
     };
 
-    return attempt(1);
+    const promise = attempt(1).finally(() => {
+      realtimeStartPromise.current = null;
+    });
+
+    realtimeStartPromise.current = promise;
+    return promise;
   }, []);
+
+
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+
+    const sub = O2Ring.addServiceReadyListener(() => {
+      serviceReadyRef.current = true;
+      setServiceReady(true);
+      startRealtimeStream();
+      syncPatientId()
+        .catch(() => null)
+        .finally(() => {
+          O2Ring.getInfo().catch((err) =>
+            console.warn(
+              "Error@O2RingProvider.tsx/getInfo (service ready): ",
+              err
+            )
+          );
+        });
+    });
+
+    return () => sub.remove();
+  }, [startRealtimeStream, syncPatientId]);
+
+  useEffect(() => {
+    if (Platform.OS === "ios") {
+      if (connectedDevice && serviceReady) {
+        startRealtimeStream();
+      }
+    }
+  }, [connectedDevice, serviceReady, startRealtimeStream]);
+
+  // On iOS retry bootstrap commands (realtime + info) until native responds.
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    if (!connectedDevice || !serviceReady) return;
+
+    const attempt = () => {
+      startRealtimeStream();
+      O2Ring.getInfo().catch((err) =>
+        console.warn("Error@O2RingProvider.tsx/getInfo (retry): ", err)
+      );
+    };
+
+    attempt();
+    infoRetryCount.current = 1;
+    const timerId = setInterval(() => {
+      infoRetryCount.current += 1;
+      if (infoRetryCount.current > 10) {
+        clearInterval(timerId);
+        if (infoRetryTimer.current === timerId) {
+          infoRetryTimer.current = null;
+        }
+        return;
+      }
+      attempt();
+    }, 4000);
+    infoRetryTimer.current = timerId;
+
+    return () => {
+      clearInterval(timerId);
+      if (infoRetryTimer.current === timerId) {
+        infoRetryTimer.current = null;
+      }
+    };
+  }, [connectedDevice, serviceReady, startRealtimeStream]);
+
+
 
   // -------------------
   // O2Ring
   // -------------------
-  // Initialize native module + listeners once
+  // Initialize native module + listeners once.
+  // Everything inside the setup callback deals with native events so we centralize
+  // cleanup logic here as well.
   useEffect(() => {
     let subRt: Subscription | null = null;
     let subErr: Subscription | null = null;
@@ -225,6 +346,9 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
         setSpo2(rt.spo2);
         setPr(rt.pr);
         setRealtimeUpdatedAt(Date.now());
+        if (Platform.OS === "ios") {
+          setIosRealtimeReady((prev) => (prev ? prev : true));
+        }
       });
 
       subErr = O2Ring.addErrorListener((err) => {
@@ -232,6 +356,13 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
         if (err?.code === "READ_FILE_ERROR") {
           currentReading.current = null;
           processReadQueue();
+        }
+        if (
+          Platform.OS === "ios" &&
+          (err?.code === "COMMAND_SEND_FAILED" ||
+            err?.code === "SERVICE_NOT_READY")
+        ) {
+          setIosRealtimeReady(false);
         }
       });
 
@@ -243,12 +374,15 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
       });
 
       subDisc = O2Ring.addDisconnectedListener(() => {
+        console.log("JS onDisconnected");
         setConnectedDevice(null);
         setSpo2(null);
         setPr(null);
         setRealtimeUpdatedAt(null);
         setIsDownloadingHistory(false);
         setDownloadProgress(0);
+        setServiceReady(Platform.OS === "android");
+        setIosRealtimeReady(Platform.OS === "android");
       });
 
       subInfo = O2Ring.addInfoListener(async (info) => {
@@ -326,7 +460,7 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
     };
 
     setup();
-
+    
     return () => {
       subRt?.remove();
       subErr?.remove();
@@ -392,37 +526,18 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
         setPr(null);
         setRealtimeUpdatedAt(null);
 
-        await O2Ring.connect(device.mac, device.model);
-        // Ask the device for info (file list) so history downloads can start.
-        // Retry a few times because connect returns before BLE is fully ready.
-        infoRetryCount.current = 0;
-        const requestInfo = async () => {
-          try {
-            infoRetryCount.current += 1;
-            if (!patientIdRef.current) {
-              // Wait until we have a patient to store files under
-              infoRetryTimer.current = setTimeout(requestInfo, 750);
-              return;
-            }
-            await O2Ring.getInfo();
-          } catch (e) {
-            console.warn("Error@O2RingProvider.tsx/getInfo: ", e);
-          }
-          if (infoRetryCount.current < 5) {
-            infoRetryTimer.current = setTimeout(requestInfo, 1000);
-          }
-        };
-        requestInfo();
-
-        const realtimeOk = await startRealtimeStream();
-        if (!realtimeOk) {
-          console.warn(
-            "Error@O2RingProvider.tsx/connectToDevice: failed to start realtime after retries"
-          );
+        // Reset serviceReady for iOS when starting a fresh connection
+        if (Platform.OS === "ios") {
+          setServiceReady(false);
         }
+        setIosRealtimeReady(Platform.OS === "android");
 
+        await O2Ring.connect(device.mac, device.model);
+
+        // Mark as connected; realtime will start when onServiceReady fires
         setConnectedDevice(device);
-        return realtimeOk;
+
+        return true;
       } catch (e) {
         console.warn("Error@O2RingProvider.tsx/connectToDevice: ", e);
         return false;
@@ -430,7 +545,7 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
         setConnecting(false);
       }
     },
-    [startRealtimeStream, syncPatientId]
+    [syncPatientId]
   );
 
   /**
@@ -459,6 +574,8 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
     setRealtimeUpdatedAt(null);
     setIsDownloadingHistory(false);
     setDownloadProgress(0);
+    setServiceReady(Platform.OS === "android");
+    setIosRealtimeReady(Platform.OS === "android");
   }, []);
 
   /**
@@ -466,8 +583,21 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
    */
   const refreshRealtime = useCallback(async () => {
     if (!connectedDeviceRef.current) return false;
+
+    const now = Date.now();
+    if (
+      realtimeUpdatedAt &&
+      now - realtimeUpdatedAt < REALTIME_STALE_TIMEOUT_MS
+    ) {
+      return true;
+    }
+
+    if (Platform.OS === "ios" && iosRealtimeReady) {
+      setIosRealtimeReady(false);
+    }
+
     return startRealtimeStream();
-  }, [startRealtimeStream]);
+  }, [iosRealtimeReady, realtimeUpdatedAt, startRealtimeStream]);
 
   const clearDevices = useCallback(() => setDevices([]), []);
 
@@ -516,12 +646,19 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
     await file.write(formattedCsv, { encoding: "utf8" });
   };
 
+  const isRealtimeReady =
+    Platform.OS === "android"
+      ? !!connectedDevice
+      : serviceReady && iosRealtimeReady && !!connectedDevice;
+
   const value = useMemo(
     () => ({
       initializing,
       hasPermission,
       isScanning,
       connecting,
+      serviceReady,
+      isRealtimeReady,
       devices,
       connectedDevice,
       spo2,
@@ -542,6 +679,8 @@ export function O2RingProvider({ children }: { children: React.ReactNode }) {
       hasPermission,
       isScanning,
       connecting,
+      serviceReady,
+      isRealtimeReady,
       devices,
       connectedDevice,
       spo2,

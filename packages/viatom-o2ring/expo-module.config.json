@@ -1,7 +1,11 @@
 {
   "name": "@ios-app/viatom-o2ring",
-  "platforms": ["android"],
+  "platforms": ["ios", "android"],
   "android": {
     "modules": ["expo.modules.viatom.ViatomModule"]
+  },
+  "ios": {
+    "modules": ["ViatomModule"],
+    "podspecPath": "viatom-o2ring.podspec"
   }
 }

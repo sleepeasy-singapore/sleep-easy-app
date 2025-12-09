@@ -14,6 +14,7 @@ import { useTheme } from "../theme/ThemeProvider";
 import { API_DEV, API_PROD } from "@env";
 import { useTranslation } from "react-i18next";
 import { Directory, Paths, File as ExpoFile } from "expo-file-system";
+import { router } from "expo-router";
 import { uploadCsv } from "../service/History";
 
 const rawBase = __DEV__ ? API_DEV : API_PROD;
@@ -117,6 +118,8 @@ export default function ShareScreen() {
       Alert.alert("Success", "File saved and uploaded for this patient.");
       // clear share intent so it doesn't repeat if user comes back
       resetShareIntent();
+      // send the user back to the main home tab after a successful upload
+      router.replace("/(tabs)/home");
     } catch (e: any) {
       console.error("Error@Share.tsx:", e?.message ?? e);
       Alert.alert(

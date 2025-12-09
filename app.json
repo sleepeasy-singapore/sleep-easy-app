@@ -19,7 +19,8 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sleepeasy.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -42,12 +43,11 @@
         "expo-share-intent",
         {
           "iosActivationRules": {
-            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
-            "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
-            "NSExtensionActivationSupportsImageWithMaxCount": 1,
-            "NSExtensionActivationSupportsMovieWithMaxCount": 1
+            "NSExtensionActivationSupportsFileWithMaxCount": 1
           },
-          "androidIntentFilters": ["*/*"]
+          "androidIntentFilters": [
+            "*/*"
+          ]
         }
       ]
     ],

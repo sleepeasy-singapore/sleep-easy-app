@@ -75,8 +75,16 @@ export default function Profile() {
         );
 
         if (res.status === 200) {
-          const p = res.data.patient;
+          const body = res.data;
+          
+          if(body.status !== 200) {
+            console.warn("API ERROR@Profile.tsx: ", body.msg)
+            await AsyncStorage.removeItem("patientData");
+            return;
+          }
 
+          const p = body.patient;
+          
           await AsyncStorage.setItem("patientData", JSON.stringify(p));
           const etag = res.headers?.etag;
           if (etag) await AsyncStorage.setItem("patientETag", etag);

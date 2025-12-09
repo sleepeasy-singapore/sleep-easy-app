@@ -35,6 +35,10 @@ export type DisconnectedEvent = {
   reason?: number;
 };
 
+export type ServiceReadyEvent = {
+  mac? : string;
+}
+
 export type RealtimeEvent = {
   spo2: number;
   pr: number;
@@ -121,6 +125,12 @@ export function addDisconnectedListener(
   listener: (e: DisconnectedEvent) => void
 ) {
   return emitter.addListener<DisconnectedEvent>("onDisconnected", listener);
+}
+
+export function addServiceReadyListener(
+  listener: (e: ServiceReadyEvent) => void
+) {
+  return emitter.addListener<ServiceReadyEvent>("onServiceReady", listener);
 }
 
 export function addRealtimeListener(listener: (e: RealtimeEvent) => void) {
