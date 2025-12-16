@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Linking,
   TextInput,
+  Image,
 } from "react-native";
 import { useTheme } from "../theme/ThemeProvider";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -37,6 +38,11 @@ export default function Welcome() {
         backgroundColor: C.bg,
       }}>
       <View style={styles.welcomeContainer}>
+        <Image
+          source={require("../assets/sleepeasylogo-banner.png")}
+          style={styles.image}
+          resizeMode="contain"
+        />
         <Text style={[{ color: C.text, ...F.title, marginBottom: 3 }]}>
           Welcome to Sleep Easy
         </Text>
@@ -93,6 +99,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  image: {
+    width: 300,
+    height: 80,
+    marginBottom: 16,
   },
   formRow: {
     minHeight: 56,
