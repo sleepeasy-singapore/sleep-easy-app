@@ -620,7 +620,8 @@ const processReadQueue = useCallback(() => {
       subDisc = O2Ring.addDisconnectedListener(() => {
         const prevDevice = connectedDeviceRef.current;
         const wasIntentional = intentionalDisconnectRef.current;
-        if (!wasIntentional && prevDevice) {
+        const isConnecting = connectingRef.current;
+        if (!wasIntentional && !isConnecting && prevDevice) {
           setOfflineDevice(prevDevice);
         } else {
           setOfflineDevice(null);
@@ -886,6 +887,7 @@ const processReadQueue = useCallback(() => {
         // Any manual connect should re-enable auto-reconnect until the user explicitly disconnects again.
         autoReconnectEnabled.current = true;
         setConnecting(true);
+        connectingRef.current = true;
         try {
           await O2Ring.stopScan().catch(() => undefined);
           setIsScanning(false);
@@ -929,16 +931,17 @@ const processReadQueue = useCallback(() => {
         setConnectedDevice(device);
         rememberDevice(device);
 
-        return true;
-      } catch (e) {
-        console.warn("Error@O2RingProvider.tsx/connectToDevice: ", e);
-        return false;
-      } finally {
-        setConnecting(false);
-      }
-    },
-    [syncPatientId]
-  );
+          return true;
+        } catch (e) {
+          console.warn("Error@O2RingProvider.tsx/connectToDevice: ", e);
+          return false;
+        } finally {
+          setConnecting(false);
+          connectingRef.current = false;
+        }
+      },
+      [syncPatientId]
+    );
 
   /**
    * Disconnect from the current device

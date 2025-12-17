@@ -5,6 +5,8 @@
   "confirmDeleteTitle": "Confirm Deletion",
   "delete": "Delete",
   "offline": "Offline",
+  "deviceOfflineTitle": "Device disconnected",
+  "deviceOfflineMessage": "{{name}} is offline.",
 
   "--comment-navbar--": "Navigation Bar",
   "settings": "Settings",
