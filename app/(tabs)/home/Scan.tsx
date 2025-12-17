@@ -49,7 +49,6 @@ function DeviceRow({ item, onPress, disabled, connecting }: DeviceRowProps) {
       />
       <View style={{ flex: 1 }}>
         <Text style={[F.text, { color: C.white }]}>{item.name}</Text>
-        <Text style={[styles.deviceMeta, { color: C.white }]}>{item.mac}</Text>
       </View>
       {connecting ? (
         <ActivityIndicator color={C.white} />
@@ -205,10 +204,5 @@ const styles = StyleSheet.create({
 
   deviceRowConnecting: {
     backgroundColor: "#1e272e",
-  },
-
-  deviceMeta: {
-    color: "#d1d8e0",
-    fontSize: 12,
   },
 });

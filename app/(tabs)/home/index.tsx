@@ -211,10 +211,13 @@ export default function Home() {
               },
             ]}>
             <View style={styles.knownMenuHeader}>
-              <Text style={[styles.knownMenuTitle, { color: C.text }]}>
-                {t("chooseDevice")}
-              </Text>
+              <View style={styles.knownMenuTitleContainer}>
+                <Text style={[styles.knownMenuTitle, { color: C.text }]}>
+                  {t("chooseDevice")}
+                </Text>
+              </View>
               <TouchableOpacity
+                style={styles.knownMenuClose}
                 onPress={() => setKnownDeviceMenuVisible(false)}
                 hitSlop={8}>
                 <MaterialCommunityIcons name="close" size={20} color={C.sub} />
@@ -300,17 +303,13 @@ export default function Home() {
                         style={{ width: 40, height: 40, marginRight: 8 }}
                         resizeMode="contain"
                       />
-                      <View>
+                      <View style={{justifyContent: "center"}}>
                         <Text
                           style={[
                             styles.knownMenuItemTitle,
                             { color: C.text },
                           ]}>
                           {device.name}
-                        </Text>
-                        <Text
-                          style={[styles.knownMenuItemMac, { color: C.sub }]}>
-                          {device.mac}
                         </Text>
                       </View>
                     </View>
@@ -585,12 +584,20 @@ const styles = StyleSheet.create({
   knownMenuHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginBottom: 8,
   },
   knownMenuTitle: {
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "center",
+  },
+  knownMenuTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+  },
+  knownMenuClose: {
+    marginLeft: 12,
   },
   knownMenuItem: {
     paddingVertical: 10,
@@ -604,10 +611,6 @@ const styles = StyleSheet.create({
   knownMenuItemTitle: {
     fontSize: 15,
     fontWeight: "700",
-  },
-  knownMenuItemMac: {
-    fontSize: 12,
-    marginTop: 2,
   },
   knownMenuItemDisabled: {
     opacity: 0.6,
