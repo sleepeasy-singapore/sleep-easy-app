@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Linking } from "react-native";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -44,15 +44,15 @@ export default function SettingsScreen() {
         { text: t("cancel"), style: "cancel" },
         {
           text: t("signOut"),
-            style: "destructive",
-            onPress: async () => {
-              try {
-                await disconnect().catch(() => undefined);
-                await AsyncStorage.removeItem("patientID"); // clear storage
-                router.replace("/Welcome"); // navigate to welcome
-              } catch (error) {
-                console.error("Error@signOut:", error);
-              }
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await disconnect().catch(() => undefined);
+              await AsyncStorage.removeItem("patientID"); // clear storage
+              router.replace("/Welcome"); // navigate to welcome
+            } catch (error) {
+              console.error("Error@signOut:", error);
+            }
           },
         },
       ],
@@ -134,6 +134,20 @@ export default function SettingsScreen() {
         id: "support",
         sectionLabel: t("support"),
         rows: [
+          {
+            id: "visit-website",
+            type: "button",
+            title: t("visitOurWebsite"),
+            icon: "globe-outline",
+            onPress: () => Linking.openURL("https://sleepeasysingapore.com/"),
+          },
+          {
+            id: "contact-whatsapp",
+            type: "button",
+            title: t("contactUsOnWhatsapp"),
+            icon: "logo-whatsapp",
+            onPress: () => Linking.openURL("https://wa.me/+6587884738"),
+          },
           /*
           {
             id: "faq",

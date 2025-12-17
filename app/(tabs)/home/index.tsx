@@ -146,8 +146,13 @@ export default function Home() {
     spo2 == null || spo2 < 20 || spo2 > 100 ? "--" : `${spo2}`;
 
   const displayPr = pr == null || pr < 20 || pr > 250 ? "--" : `${pr}`;
-  const displayBattery =
-    battery == null || battery < 0 || battery > 100 ? "--" : `${battery}%`;
+  const batterySegments = useMemo(() => {
+    if (battery == null || battery < 0 || battery > 100) {
+      return null;
+    }
+    const clamped = Math.max(0, Math.min(100, battery));
+    return Math.max(1, Math.min(5, Math.ceil(clamped / 20))); // 1-5 blocks for an approximate fill
+  }, [battery]);
   const batteryIconName = useMemo(() => {
     switch (batteryState) {
       case 1:
@@ -364,13 +369,29 @@ export default function Home() {
                   size={22}
                   color={C.text}
                 />
-                <Text
-                  style={[
-                    styles.batteryText,
-                    { color: C.tint },
-                  ]}>
-                  {displayBattery}
-                </Text>
+                {batterySegments == null ? (
+                  <Text style={[styles.batteryText, { color: C.tint }]}>
+                    --
+                  </Text>
+                ) : (
+                  <View style={styles.batteryBlocks}>
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.batteryBlock,
+                          {
+                            marginLeft: idx === 0 ? 0 : 3,
+                            backgroundColor:
+                              idx < batterySegments ? C.tint : "transparent",
+                            borderColor: C.border,
+                            opacity: idx < batterySegments ? 1 : 0.35,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -482,6 +503,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     marginLeft: 8,
+  },
+  batteryBlocks: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  batteryBlock: {
+    width: 8,
+    height: 12,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   card: {
     padding: 16,

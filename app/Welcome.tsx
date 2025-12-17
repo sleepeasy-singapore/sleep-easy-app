@@ -89,6 +89,25 @@ export default function Welcome() {
             Contact Us Here
           </Text>
         </TouchableOpacity>
+        <Text
+          style={[
+            {
+              color: C.text,
+              ...F.sectionLabel,
+              textAlign: "center",
+              marginTop: 16,
+            },
+          ]}>
+          Want to know more about us?
+        </Text>{" "}
+        <TouchableOpacity
+          style={[styles.buttonSecondary, { borderColor: C.border }]}
+          activeOpacity={0.85}
+          onPress={() => Linking.openURL("https://sleepeasysingapore.com/")}>
+          <Text style={[{ ...F.buttonText, fontSize: 14, color: C.text }]}>
+            Visit our website
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -121,6 +140,15 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-end",
+  },
+  buttonSecondary: {
+    height: 40,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
   },
   button: {
     height: 40,
