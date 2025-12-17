@@ -6,8 +6,11 @@ import { router } from "expo-router";
 import { useTheme } from "../theme/ThemeProvider";
 
 export default function WelcomeBack() {
-  const { colors: C, fonts: F } = useTheme();
+  const { colors: C, fonts: F, isDark } = useTheme();
   const [patientID, setPatientID] = useState<string | null>(null);
+  const bannerSource = isDark
+    ? require("../assets/sleepeasylogo-banner-darkMode.png")
+    : require("../assets/sleepeasylogo-banner.png");
 
   useEffect(() => {
     let redirectTimer: ReturnType<typeof setTimeout> | undefined;
@@ -49,7 +52,7 @@ export default function WelcomeBack() {
       }}>
       <View style={styles.welcomeContainer}>
         <Image
-          source={require("../assets/sleepeasylogo-banner.png")}
+          source={bannerSource}
           style={styles.image}
           resizeMode="contain"
         />
