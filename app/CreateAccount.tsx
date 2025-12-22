@@ -51,12 +51,24 @@ export default function CreateAccount() {
       );
       router.replace("/Welcome");
     } catch (error) {
-      console.error("Error@CreateAccount:", error);
+      const statusCode = Number(
+        (error as any)?.status ??
+          (error as any)?.response?.status ??
+          (error as any)?.response?.data?.status
+      );
+      const status = Number.isFinite(statusCode) ? statusCode : undefined;
+      console.error("Error@CreateAccount:", {
+        status,
+        message: (error as any)?.message,
+        body: (error as any)?.body ?? (error as any)?.response?.data,
+      });
       const message =
         error instanceof Error
           ? error.message
           : "Create account failed. Try again.";
-      Alert.alert("Create account failed", message);
+      const messageWithStatus =
+        status !== undefined ? `${message} (status ${status})` : message;
+      Alert.alert("Create account failed", messageWithStatus);
     } finally {
       setIsSubmitting(false);
     }

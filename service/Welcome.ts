@@ -5,6 +5,25 @@ export type LoginResult = {
   account: any;
 };
 
+type ApiError = Error & { status?: number; body?: any };
+
+const buildApiError = ({
+  status,
+  body,
+  fallback,
+}: {
+  status?: number;
+  body?: any;
+  fallback: string;
+}): ApiError => {
+  const message = body?.msg || body?.message || fallback;
+  const err = new Error(message) as ApiError;
+  const numericStatus = Number(status);
+  if (Number.isFinite(numericStatus)) err.status = numericStatus;
+  if (body !== undefined) err.body = body;
+  return err;
+};
+
 export const loginWithEmailAndPassword = async (params: {
   email: string;
   password: string;
@@ -20,12 +39,16 @@ export const loginWithEmailAndPassword = async (params: {
       params: { email, password },
     });
   } catch (error: any) {
-    const msg =
-      error?.response?.data?.msg ||
-      error?.response?.data?.message ||
-      error?.message;
-    if (msg) throw new Error(msg);
-    throw error;
+    const status =
+      error?.response?.data?.status ??
+      error?.response?.status ??
+      error?.status;
+    const body = error?.response?.data;
+    throw buildApiError({
+      status,
+      body,
+      fallback: error?.message || "Login failed.",
+    });
   }
 
   const body = res?.data ?? {};
@@ -38,7 +61,11 @@ export const loginWithEmailAndPassword = async (params: {
     };
   }
 
-  throw new Error(body?.msg || body?.message || "Login failed.");
+  throw buildApiError({
+    status,
+    body,
+    fallback: "Login failed.",
+  });
 };
 
 export const validateLoginDetails = loginWithEmailAndPassword;
@@ -69,12 +96,16 @@ export const createAccountWithEmailAndPassword = async (params: {
       { headers: { "Content-Type": "multipart/form-data" } }
     );
   } catch (error: any) {
-    const msg =
-      error?.response?.data?.msg ||
-      error?.response?.data?.message ||
-      error?.message;
-    if (msg) throw new Error(msg);
-    throw error;
+    const status =
+      error?.response?.data?.status ??
+      error?.response?.status ??
+      error?.status;
+    const body = error?.response?.data;
+    throw buildApiError({
+      status,
+      body,
+      fallback: error?.message || "Create account failed.",
+    });
   }
 
   const body = res?.data ?? {};
@@ -87,5 +118,9 @@ export const createAccountWithEmailAndPassword = async (params: {
     };
   }
 
-  throw new Error(body?.msg || body?.message || "Create account failed.");
+  throw buildApiError({
+    status,
+    body,
+    fallback: "Create account failed.",
+  });
 };
